@@ -1,0 +1,43 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="result-header">
+    <h1>{{ t['price_risk_title'] }}</h1>
+    <a href="/?lang={{ lang }}" class="btn-secondary">{{ t['map_back'] }}</a>
+</div>
+
+<p style="text-align: center; color: var(--text-muted); font-size: 1.2rem; margin-bottom: 2rem;">
+    {{ t['price_risk_subtitle'] }}
+</p>
+
+<section class="form-section">
+    <form action="/predict-risk?lang={{ lang }}" method="POST" class="analyz-form">
+        
+        <div class="form-group">
+            <label for="crop">{{ t['form_crop_label'] }}</label>
+            <select name="crop" id="crop" required>
+                <option value="" disabled selected>{{ t['form_crop_default'] }}</option>
+                {% for crop in crops %}
+                <option value="{{ crop['name'] }}">{{ t.get(crop['name'], crop['name']) }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="region">{{ t['form_region_label'] }}</label>
+            <select name="region" id="region" required>
+                <option value="" disabled selected>{{ t['form_region_default'] }}</option>
+                {% for region in regions %}
+                <option value="{{ region }}">{{ region }}</option> <!-- We will keep English district names for ML input mapping -->
+                {% endfor %}
+            </select>
+        </div>
+
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">
+            {{ t.get('price_risk_cultivation_source', 'Cultivation percentage is auto-determined from regional map data') }}
+        </p>
+
+        <button type="submit" class="btn-primary" style="margin-top: 1rem;">{{ t['price_risk_submit'] }}</button>
+    </form>
+</section>
+{% endblock %}

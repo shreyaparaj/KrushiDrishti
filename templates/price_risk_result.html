@@ -1,0 +1,65 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="result-header">
+    <h1>{{ intelligence['t_dashboard_title'] }}</h1>
+    <a href="/price-risk?lang={{ lang }}" class="btn-secondary">{{ t['res_back'] }}</a>
+</div>
+
+<div class="result-card" style="margin-top: 2rem;">
+    <h3 style="text-align: center; color: var(--primary-dark); font-size: 1.5rem; margin-bottom: 2rem;">
+        {{ intelligence['region'] }} | {{ intelligence['crop'] }}
+    </h3>
+
+    <!-- Price Range Display -->
+    <div style="margin-bottom: 2.5rem; text-align: center;">
+        <p style="font-weight: 600; font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 1.5rem;">Price Range: {{ intelligence['price_range_str'] }}</p>
+        
+        <!-- Single Price Category Badge -->
+        <div style="display: inline-block; background: {{ intelligence['price_bg_color'] }}; border: 3px solid {{ intelligence['price_border_color'] }}; padding: 1.5rem 2.5rem; border-radius: 12px; text-align: center;">
+            <div style="font-size: 1rem; color: {{ intelligence['price_text_color'] }}; font-weight: 700; text-transform: uppercase; margin-bottom: 0.8rem; letter-spacing: 1px;">{{ intelligence['price_category'] }}</div>
+            <div style="font-size: 1.8rem; color: {{ intelligence['price_color'] }}; font-weight: bold;">₹{{ intelligence['price_average'] }}</div>
+        </div>
+    </div>
+
+    {% if intelligence['historical_price_range'] %}
+    <div style="margin-top: 1rem; padding: 1rem 1.2rem; background: #f9f9f9; border-radius: 10px; border-left: 4px solid #2196f3;">
+        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">Historical Range</div>
+        <div style="font-size: 1.05rem; color: var(--text-color); font-weight: 600;">{{ intelligence['historical_price_range'] }}</div>
+    </div>
+    {% endif %}
+
+    {% if intelligence['model_source'] %}
+    <div style="margin-top: 1rem; padding: 1rem 1.2rem; background: rgba(46, 125, 50, 0.08); border-radius: 10px; border: 1px solid rgba(46, 125, 50, 0.16);">
+        <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem;">Predictor Details</div>
+        <div style="font-size: 0.95rem; color: var(--text-color);">
+            Dataset: {{ intelligence['model_source'] }}
+            {% if intelligence['model_row_count'] %}| Rows: {{ intelligence['model_row_count'] }}{% endif %}
+            {% if intelligence['model_trained_at'] %}| Trained: {{ intelligence['model_trained_at'] }}{% endif %}
+        </div>
+        {% if intelligence['model_date_range'] %}
+        <div style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.35rem;">
+            Coverage: {{ intelligence['model_date_range']['start'] }} to {{ intelligence['model_date_range']['end'] }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% if intelligence['is_saturated'] and intelligence['alternatives'] %}
+    <div style="margin-top: 1.5rem; padding: 2rem; background: #fff5f5; border: 1px solid #ffcdd2; border-radius: 12px;">
+        <h4 style="color: #c62828; font-size: 1.3rem; margin-bottom: 1rem;">
+            {{ intelligence['t_warning_title'] }}
+        </h4>
+        <p style="color: var(--text-color); font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600;">
+            {{ intelligence['t_consider_alternatives'] }}
+        </p>
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+            {% for alt in intelligence['alternatives'] %}
+            <span style="background: white; padding: 0.5rem 1rem; border-radius: 20px; border: 1px solid rgba(0,0,0,0.1); font-weight: 600; color: var(--primary-dark); box-shadow: 0 2px 5px rgba(0,0,0,0.05);"><span style="margin-right:0.3rem;">🌱</span> {{ alt }}</span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

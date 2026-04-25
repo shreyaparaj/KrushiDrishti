@@ -1,0 +1,91 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="hero-section" style="padding-bottom: 2rem;">
+    <div id="analyzer-form" class="form-card card-glass" style="margin: 0 auto;">
+        <h2>{{ t['home_form_title'] }}</h2>
+        <form action="/recommend?lang={{ lang }}" method="POST" class="advisory-form">
+            <div class="form-group">
+                <label for="crop">{{ t['form_crop_label'] }}</label>
+                <select name="crop" id="crop" required>
+                    <option value="" disabled selected>{{ t['form_crop_default'] }}</option>
+                    {% for crop in crops %}
+                    <option value="{{ crop.id }}">{{ t.get(crop.name, crop.name) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="crop_age">{{ t['form_crop_age_label'] }}</label>
+                <input type="number" name="crop_age" id="crop_age" min="1"
+                    placeholder="{{ t.get('form_crop_age_placeholder', '') }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="region">{{ t['form_region_label'] }}</label>
+                <select name="region" id="region" required>
+                    <option value="" disabled selected>{{ t['form_region_default'] }}</option>
+                    <option value="Ahmednagar">Ahmednagar</option>
+                    <option value="Akola">Akola</option>
+                    <option value="Amravati">Amravati</option>
+                    <option value="Aurangabad">Aurangabad (Chhatrapati Sambhajinagar)</option>
+                    <option value="Beed">Beed</option>
+                    <option value="Bhandara">Bhandara</option>
+                    <option value="Buldhana">Buldhana</option>
+                    <option value="Chandrapur">Chandrapur</option>
+                    <option value="Dhule">Dhule</option>
+                    <option value="Gadchiroli">Gadchiroli</option>
+                    <option value="Gondia">Gondia</option>
+                    <option value="Hingoli">Hingoli</option>
+                    <option value="Jalgaon">Jalgaon</option>
+                    <option value="Jalna">Jalna</option>
+                    <option value="Kolhapur">Kolhapur</option>
+                    <option value="Latur">Latur</option>
+                    <option value="Mumbai">Mumbai</option>
+                    <option value="Nagpur">Nagpur</option>
+                    <option value="Nanded">Nanded</option>
+                    <option value="Nandurbar">Nandurbar</option>
+                    <option value="Nashik">Nashik</option>
+                    <option value="Osmanabad">Osmanabad (Dharashiv)</option>
+                    <option value="Palghar">Palghar</option>
+                    <option value="Parbhani">Parbhani</option>
+                    <option value="Pune">Pune</option>
+                    <option value="Raigad">Raigad</option>
+                    <option value="Ratnagiri">Ratnagiri</option>
+                    <option value="Sangli">Sangli</option>
+                    <option value="Satara">Satara</option>
+                    <option value="Sindhudurg">Sindhudurg</option>
+                    <option value="Solapur">Solapur</option>
+                    <option value="Thane">Thane</option>
+                    <option value="Wardha">Wardha</option>
+                    <option value="Washim">Washim</option>
+                    <option value="Yavatmal">Yavatmal</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="soil">{{ t['form_soil_label'] }}</label>
+                <select name="soil" id="soil" required>
+                    <option value="" disabled selected>{{ t['form_soil_default'] }}</option>
+                    {% for soil in soils %}
+                    <option value="{{ soil.id }}">{{ t.get(soil.name, soil.name) }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="current_fertilizer">{{ t['form_fert_label'] }}</label>
+                <select name="current_fertilizer" id="current_fertilizer" required>
+                    <option value="" disabled selected>{{ t['form_fert_default'] }}</option>
+                    {% for fert in fertilizers %}
+                    <option value="{{ fert.id }}">{{ t.get(fert.name, fert.name) }} ({{ t.get(fert.type, fert.type) }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <button type="submit" class="btn-primary">{{ t['form_submit'] }}</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

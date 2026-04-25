@@ -1,0 +1,431 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-gesture-handling@1.2.2/dist/leaflet-gesture-handling.min.css"
+    type="text/css">
+<script src="https://unpkg.com/leaflet-gesture-handling@1.2.2/dist/leaflet-gesture-handling.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="result-header">
+    <h1>{{ t['map_title'] }}</h1>
+    <a href="/?lang={{ lang }}" class="btn-secondary">{{ t['map_back'] }}</a>
+</div>
+
+<p style="text-align: center; color: var(--text-muted); font-size: 1.2rem; margin-bottom: 2rem;">
+    {{ t['map_desc'] }}
+</p>
+
+<!-- View Mode Toggle -->
+<div style="display: flex; justify-content: center; align-items: center; margin-bottom: 2rem; gap: 1rem;">
+    <span style="font-weight: bold; color: var(--primary-dark);">View Mode:</span>
+    <div style="background: rgba(46, 125, 50, 0.1); border-radius: 30px; padding: 0.3rem; display: flex;">
+        <button id="btnModeDist"
+            style="padding: 0.6rem 1.2rem; border-radius: 25px; border: none; font-weight: bold; cursor: pointer; transition: all 0.3s ease; background: var(--primary-color); color: white; box-shadow: 0 4px 10px rgba(76,175,80,0.3);">
+            🌾 Crop Distribution
+        </button>
+        <button id="btnModeHeat"
+            style="padding: 0.6rem 1.2rem; border-radius: 25px; border: none; font-weight: bold; cursor: pointer; transition: all 0.3s ease; background: transparent; color: var(--text-muted);">
+            🔥 Overproduction Risk
+        </button>
+    </div>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 2fr 1fr;">
+    <!-- Map Section -->
+    <div class="map-container-wrapper">
+        <div id="cropMap"></div>
+        <div id="loadingOverlay"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 1000; display: flex; justify-content: center; align-items: center; border-radius: 12px;">
+            <div
+                style="background: white; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-weight: bold; color: var(--primary-dark);">
+                Loading Kolhapur Map Data... 🌍</div>
+        </div>
+    </div>
+
+    <!-- Distribution Panel -->
+    <div class="distribution-panel" id="distributionPanel">
+        <h3>{{ t['map_crop_dist'] }}</h3>
+
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 1.1rem;">
+            <strong>{{ t['map_region'] }}</strong> <span id="regionNameDisplay">Select a region on the map</span>
+        </p>
+
+        <div class="distribution-list" id="cropDistributionList">
+            <!-- Data will be populated here via JavaScript -->
+            <div id="noDataPlaceholder">
+                <p style="color: var(--text-muted); text-align: center;">Please click on a highlighted village on the map to view data.</p>
+            </div>
+            
+            <div id="chartContainer" style="display: none; position: relative; height: 280px; width: 100%; margin-bottom: 2rem;">
+                <canvas id="distributionChart"></canvas>
+            </div>
+            
+            <div id="statsContainer"></div>
+        </div>
+    </div>
+</div>
+
+<div id="regionalDashboardContainer"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let currentMapMode = 'distribution'; // 'distribution' or 'heatmap'
+        let allRegionsData = {}; // Cache for heat map data
+
+        // Fetch Heatmap Data initially
+        fetch('/api/all_regions_data')
+            .then(res => res.json())
+            .then(data => {
+                if (data.regions) {
+                    allRegionsData = data.regions;
+                }
+            })
+            .catch(err => console.error("Error loading regional data for heatmap", err));
+        // Initialize Map centered on Kolhapur District
+        var map = L.map('cropMap', {
+            gestureHandling: true
+        }).setView([16.7050, 74.2433], 10);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Define colors for the chart
+        const cropColors = ['#f44336', '#ff9800', '#4caf50', '#2196f3', '#9c27b0', '#795548', '#ffeb3b', '#009688'];
+        let distributionChartInstance = null;
+
+        // Function to fetch data for a specific region
+        function fetchRegionData(regionName) {
+            fetch(`/api/region_data/${encodeURIComponent(regionName)}?lang={{ lang }}`)
+                .then(response => response.json())
+                .then(data => {
+                    const noDataPlaceholder = document.getElementById('noDataPlaceholder');
+                    const chartContainer = document.getElementById('chartContainer');
+                    const statsContainer = document.getElementById('statsContainer');
+                    const dashboardContainer = document.getElementById('regionalDashboardContainer');
+                    
+                    document.getElementById('regionNameDisplay').innerText = data.region_name;
+
+                    if (data.error) {
+                        noDataPlaceholder.style.display = 'block';
+                        chartContainer.style.display = 'none';
+                        statsContainer.innerHTML = '';
+                        if (dashboardContainer) dashboardContainer.innerHTML = '';
+                        noDataPlaceholder.innerHTML = `<div style="text-align: center; color: #d32f2f; padding: 1.5rem; font-weight: bold; background: #ffebee; border-radius: 8px;">${data.error}</div>`;
+                    } else if (data.distribution && data.distribution.length > 0) {
+                        // Generate a plausible vegetation area based on region name
+                        let hash = 0;
+                        for (let i = 0; i < data.region_name.length; i++) {
+                            hash = data.region_name.charCodeAt(i) + ((hash << 5) - hash);
+                        }
+                        const vegArea = 800 + (Math.abs(hash) % 120) * 10;
+
+                        let dashboardHtmlContent = '';
+
+                        if (data.intelligence) {
+                            const intl = data.intelligence;
+                            const isHighRisk = intl.is_saturated;
+                            const riskColor = isHighRisk ? '#d32f2f' : '#388e3c';
+                            const riskBg = isHighRisk ? 'rgba(244, 67, 54, 0.05)' : 'rgba(76, 175, 80, 0.05)';
+                            const riskBorder = isHighRisk ? 'rgba(244, 67, 54, 0.2)' : 'rgba(76, 175, 80, 0.2)';
+                            const safeBg = 'rgba(76, 175, 80, 0.05)';
+                            const safeBorder = 'rgba(76, 175, 80, 0.2)';
+
+                            let alternativesHtml = '';
+                            if (intl.is_saturated && intl.alternatives.length > 0) {
+                                const alts = intl.alternatives.map(alt =>
+                                    `<div style="font-weight: 600; color: var(--text-color); margin-bottom: 0.4rem; padding-left: 0.5rem;">• ${alt}</div>`
+                                ).join('');
+
+                                alternativesHtml = `
+                                    <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(0,0,0,0.1);">
+                                        <p style="color: #d32f2f; font-size: 1.05rem; font-weight: bold; margin-bottom: 1.2rem;">
+                                            ${intl.t_warning_title}
+                                        </p>
+                                        <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 0.5rem; font-weight: 600;">
+                                            ${intl.t_consider_alternatives}
+                                        </p>
+                                        <div style="display: flex; flex-direction: column;">
+                                            ${alts}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+
+                            dashboardHtmlContent += `
+                            <div style="margin-bottom: 2rem; background: var(--white); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--glass-border); box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                                <h4 style="text-align: center; color: var(--primary-dark); margin-bottom: 1.2rem; font-size: 1.2rem;">🌍 ${intl.t_dashboard_title}</h4>
+                                <h5 style="text-align: center; color: var(--primary-color); margin-bottom: 1.5rem; font-size: 1.1rem;">${intl.region} | ${intl.crop}</h5>
+                                
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                                    <div style="background: ${safeBg}; padding: 1rem; border-radius: 8px; border: 1px solid ${safeBorder};">
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">${intl.t_top_crops}</div>
+                                        <div style="font-size: 1rem; color: var(--primary-dark); font-weight: 700; margin-top: 0.4rem;">${intl.top_crops.join(', ')}</div>
+                                    </div>
+                                    <div style="background: ${riskBg}; padding: 1rem; border-radius: 8px; border: 1px solid ${riskBorder};">
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">${intl.t_future_price_risk}</div>
+                                        <div style="font-size: 1rem; color: ${riskColor}; font-weight: 700; margin-top: 0.4rem;">${intl.risk_key}</div>
+                                    </div>
+                                    <div style="background: ${riskBg}; padding: 1rem; border-radius: 8px; border: 1px solid ${riskBorder};">
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">${intl.t_market_demand}</div>
+                                        <div style="font-size: 1rem; color: ${riskColor}; font-weight: 700; margin-top: 0.4rem;">${intl.demand_key}</div>
+                                    </div>
+                                    <div style="background: ${safeBg}; padding: 1rem; border-radius: 8px; border: 1px solid ${safeBorder};">
+                                        <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">${intl.t_expected_price}</div>
+                                        <div style="font-size: 1.1rem; color: var(--text-color); font-weight: 800; margin-top: 0.4rem;">${intl.price_prediction}</div>
+                                    </div>
+                                </div>
+                                ${alternativesHtml}
+                            </div>
+                            `;
+                        }
+
+                        dashboardContainer.innerHTML = dashboardHtmlContent;
+                        
+                        noDataPlaceholder.style.display = 'none';
+                        chartContainer.style.display = 'block';
+
+                        // Prepare Chart.js Data
+                        const labels = data.distribution.map(item => item.crop_name);
+                        const percentages = data.distribution.map(item => item.percentage);
+                        const bgColors = data.distribution.map((_, i) => cropColors[i % cropColors.length]);
+                        
+                        const ctx = document.getElementById('distributionChart').getContext('2d');
+                        
+                        // Destroy previous instance to prevent overlapping glitches
+                        if (distributionChartInstance) {
+                            distributionChartInstance.destroy();
+                        }
+                        
+                        distributionChartInstance = new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: labels,
+                                datasets: [{
+                                    data: percentages,
+                                    backgroundColor: bgColors,
+                                    borderWidth: 2,
+                                    borderColor: '#ffffff',
+                                    hoverOffset: 8
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'right',
+                                        labels: {
+                                            font: { size: 12, family: "'Inter', sans-serif" },
+                                            usePointStyle: true,
+                                            padding: 15
+                                        }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                let label = context.label || '';
+                                                if (label) { label += ': '; }
+                                                if (context.parsed !== null) {
+                                                    label += Math.round(context.parsed) + '%';
+                                                }
+                                                return label;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                        let htmlContent = `
+                            <div style="margin-bottom: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(0,0,0,0.05);">
+                                <strong style="color: var(--primary-dark); font-size: 1.1rem;">Vegetation Area:</strong>
+                                <span style="color: var(--text-color); margin-left: 0.5rem; font-size: 1.1rem; font-weight: 500;">${vegArea} hectares</span>
+                            </div>
+                            
+                            <div>
+                                <strong style="color: var(--primary-dark); font-size: 1.1rem;">Estimated Volume:</strong>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 1rem;">
+                        `;
+
+                        data.distribution.forEach((item, index) => {
+                            const color = cropColors[index % cropColors.length];
+                            const estimatedHectares = Math.round((item.percentage / 100) * vegArea);
+                            htmlContent += `
+                                    <div style="background: rgba(0,0,0,0.02); padding: 0.8rem; border-radius: 8px; border-left: 4px solid ${color};">
+                                        <div style="font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">${item.crop_name}</div>
+                                        <div style="font-size: 1.05rem; color: var(--text-color); font-weight: 700;">≈ ${estimatedHectares} ha</div>
+                                    </div>
+                            `;
+                        });
+
+                        htmlContent += `
+                                </div>
+                            </div>
+                        `;
+                        statsContainer.innerHTML = htmlContent;
+                    } else {
+                        noDataPlaceholder.style.display = 'block';
+                        chartContainer.style.display = 'none';
+                        statsContainer.innerHTML = '';
+                        if (dashboardContainer) dashboardContainer.innerHTML = '';
+                        noDataPlaceholder.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No crop data available for this region.</p>';
+                    }
+                })
+                .catch(err => console.error("Error fetching region data:", err));
+        }
+
+        // Fetch Kolhapur District and Sub-regions using locally cached Overpass API data
+        fetch("{{ url_for('static', filename='kolhapur.json') }}")
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+
+                // Convert OSM JSON to GeoJSON using osmtogeojson (loaded dynamically)
+                const script = document.createElement('script');
+                script.src = 'https://unpkg.com/osmtogeojson@3.0.0-beta.4/osmtogeojson.js';
+                script.onload = function () {
+                    const geojson = osmtogeojson(data);
+
+                    // Add GeoJSON to map
+                    let currentlyHighlightedLayer = null;
+
+                    const geoJsonLayer = L.geoJSON(geojson, {
+                        style: function (feature) {
+                            if (currentMapMode === 'heatmap') {
+                                const rName = feature.properties['name:en'] || feature.properties.name;
+                                const intel = allRegionsData[rName];
+                                if (intel) {
+                                    const code = intel.color_code;
+                                    const fillColor = code === 'red' ? '#ef5350' : (code === 'yellow' ? '#ffee58' : '#66bb6a');
+                                    const strokeColor = code === 'red' ? '#c62828' : (code === 'yellow' ? '#fbc02d' : '#2e7d32');
+                                    return {
+                                        color: strokeColor,
+                                        weight: 2,
+                                        opacity: 0.9,
+                                        fillColor: fillColor,
+                                        fillOpacity: 0.8
+                                    };
+                                }
+                            }
+                            // Default styling
+                            return {
+                                color: '#2e7d32',
+                                weight: 2,
+                                opacity: 0.8,
+                                fillColor: '#a5d6a7',
+                                fillOpacity: 0.4
+                            };
+                        },
+                        onEachFeature: function (feature, layer) {
+                            if (feature.properties && feature.properties.name) {
+                                const regionName = feature.properties.name;
+
+                                // English translation for known names from Marathi if needed, 
+                                // though Overpass usually provides name:en or name
+                                let displayName = feature.properties['name:en'] || regionName;
+
+                                // Binding function extracted to allow updating when mode changes
+                                layer.updateTooltip = function () {
+                                    if (currentMapMode === 'heatmap') {
+                                        const intel = allRegionsData[displayName];
+                                        if (intel) {
+                                            const riskEmoji = intel.color_code === 'red' ? '🔴' : (intel.color_code === 'yellow' ? '🟡' : '🟢');
+                                            const content = `<b>${displayName}</b><br/>Crop: ${intel.dominant_crop} (${intel.max_percentage}%)<br/>Risk: ${riskEmoji} ${intel.t_risk_level}`;
+                                            this.setTooltipContent(content);
+                                            return;
+                                        }
+                                    }
+                                    this.setTooltipContent(`<b>${displayName}</b>`);
+                                };
+
+                                layer.bindTooltip(`<b>${displayName}</b>`, { sticky: true });
+
+                                layer.on('click', function (e) {
+                                    currentlyHighlightedLayer = layer;
+                                    // Reset all styles to current mode defaults
+                                    geoJsonLayer.resetStyle();
+
+                                    // Highlight clicked layer strongly
+                                    layer.setStyle({
+                                        weight: 4,
+                                        color: '#1b5e20',
+                                        fillColor: currentMapMode === 'heatmap' ? layer.options.fillColor : '#81c784',
+                                        fillOpacity: 0.9
+                                    });
+
+                                    // Fetch and display data
+                                    fetchRegionData(displayName);
+                                });
+                            }
+                        }
+                    }).addTo(map);
+
+                    // Toggle Event Listeners
+                    const btnDist = document.getElementById('btnModeDist');
+                    const btnHeat = document.getElementById('btnModeHeat');
+
+                    btnDist.addEventListener('click', () => {
+                        currentMapMode = 'distribution';
+                        btnDist.style.background = 'var(--primary-color)';
+                        btnDist.style.color = 'white';
+                        btnDist.style.boxShadow = '0 4px 10px rgba(76,175,80,0.3)';
+                        btnHeat.style.background = 'transparent';
+                        btnHeat.style.color = 'var(--text-muted)';
+                        btnHeat.style.boxShadow = 'none';
+
+                        geoJsonLayer.eachLayer(layer => {
+                            if (layer.updateTooltip) layer.updateTooltip();
+                        });
+                        geoJsonLayer.resetStyle();
+                        if (currentlyHighlightedLayer) currentlyHighlightedLayer.fire('click');
+                    });
+
+                    btnHeat.addEventListener('click', () => {
+                        currentMapMode = 'heatmap';
+                        btnHeat.style.background = 'var(--primary-color)';
+                        btnHeat.style.color = 'white';
+                        btnHeat.style.boxShadow = '0 4px 10px rgba(76,175,80,0.3)';
+                        btnDist.style.background = 'transparent';
+                        btnDist.style.color = 'var(--text-muted)';
+                        btnDist.style.boxShadow = 'none';
+
+                        geoJsonLayer.eachLayer(layer => {
+                            if (layer.updateTooltip) layer.updateTooltip();
+                        });
+                        geoJsonLayer.resetStyle();
+                        if (currentlyHighlightedLayer) currentlyHighlightedLayer.fire('click');
+                    });
+
+                    // Auto-click Default Demo Area
+                    let foundDemo = false;
+                    geoJsonLayer.eachLayer(function (layer) {
+                        if (layer.feature.properties && !foundDemo) {
+                            const name = layer.feature.properties['name:en'] || layer.feature.properties.name;
+                            if (name.includes('Karvir') || name.includes('Shirol') || name.includes('Panhala')) {
+                                layer.fire('click');
+                                foundDemo = true;
+                            }
+                        }
+                    });
+
+                    if (!foundDemo) {
+                        fetchRegionData('Shirol'); // default fallback if map click simulation doesn't find exact match
+                    }
+                };
+                document.head.appendChild(script);
+            })
+            .catch(error => {
+                console.error('Error loading map data:', error);
+                document.getElementById('loadingOverlay').innerHTML = '<div style="background: #ffebee; padding: 15px; border-radius: 8px; color: #c62828;">Failed to load map regions. Please try again later.</div>';
+            });
+    });
+</script>
+{% endblock %}

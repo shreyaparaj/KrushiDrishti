@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Data and models
+data/
+# Note: if models are large, you might want to uncomment the line below
+# models/
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files and test outputs
+tmp/
+test_output*.html
+*.log
+
+# VS Code / IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db

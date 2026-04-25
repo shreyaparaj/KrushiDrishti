@@ -1,0 +1,42 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="hero-section">
+    <h1>KrushiDrishti</h1>
+    <h2>{{ t['home_title'] }}</h2>
+    <p>{{ t['home_subtitle'] }}</p>
+
+    <div class="feature-cards-grid">
+        <!-- Fertilizer Advisor Card -->
+        <div class="feature-card glass-card">
+            <div class="feature-icon">🌱</div>
+            <h3>{{ t['feature_fert_title'] }}</h3>
+            <p>{{ t['feature_fert_desc'] }}</p>
+            <a href="/analyzer?lang={{ lang }}" class="btn-primary"
+                style="display:inline-block; text-decoration:none; margin-top:1rem;">{{ t['feature_fert_btn'] }}</a>
+        </div>
+
+        <!-- Crop Planning Map Card -->
+        <div class="feature-card glass-card">
+            <div class="feature-icon">🗺️</div>
+            <h3>{{ t['feature_map_title'] }}</h3>
+            <p>{{ t['feature_map_desc'] }}</p>
+            <a href="/map?lang={{ lang }}" class="btn-primary"
+                style="display:inline-block; text-decoration:none; margin-top:1rem; background:linear-gradient(135deg, #1976d2, #0d47a1);box-shadow: 0 6px 15px rgba(25, 118, 210, 0.3);">{{
+                t['feature_map_btn'] }}</a>
+        </div>
+
+        <!-- Price Risk Predictor Card -->
+        <div class="feature-card glass-card">
+            <div class="feature-icon">📊</div>
+            <h3>{{ t['feature_price_title'] }}</h3>
+            <p>{{ t['feature_price_desc'] }}</p>
+            <a href="/price-risk?lang={{ lang }}" class="btn-primary"
+                style="display:inline-block; text-decoration:none; margin-top:1rem; background:linear-gradient(135deg, #f57f17, #f9a825);box-shadow: 0 6px 15px rgba(245, 127, 23, 0.3);">{{
+                t['feature_price_btn'] }}</a>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

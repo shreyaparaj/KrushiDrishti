@@ -1,0 +1,61 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="result-header">
+    <h1>Price Risk Prediction Result</h1>
+    <a href="/?lang={{ lang }}" class="btn-secondary">← Back to Home</a>
+</div>
+
+<div class="result-card" style="margin-top: 2rem; padding: 2.5rem; text-align: left; max-width: 700px; margin-left: auto; margin-right: auto;">
+    <p style="font-size: 1.2rem; color: var(--text-color); margin-bottom: 0.5rem;">
+        <strong>Crop:</strong> {{ crop }}
+    </p>
+    <p style="font-size: 1.2rem; color: var(--text-color); margin-bottom: 2rem;">
+        <strong>Region:</strong> {{ region }}
+    </p>
+
+    <div style="margin-bottom: 2rem;">
+        <p style="font-weight: 600; font-size: 1.1rem; color: var(--primary-dark); margin-bottom: 1.5rem; text-align: center;">Price Range: {{ risk.price_range_str }}</p>
+        
+        <!-- Single Price Category Badge -->
+        <div style="display: flex; justify-content: center; margin-bottom: 2rem;">
+            <div style="background: {{ risk.price_bg_color }}; border: 3px solid {{ risk.price_border_color }}; padding: 1.5rem 2.5rem; border-radius: 12px; text-align: center;">
+                <div style="font-size: 1rem; color: {{ risk.price_text_color }}; font-weight: 700; text-transform: uppercase; margin-bottom: 0.8rem; letter-spacing: 1px;">{{ risk.price_category }}</div>
+                <div style="font-size: 1.8rem; color: {{ risk.price_color }}; font-weight: bold;">₹{{ risk.price_average }}</div>
+            </div>
+        </div>
+        
+        <!-- Variance/Bottom Line -->
+        <div style="text-align: center; padding: 1rem; background: linear-gradient(135deg, rgba(100, 150, 200, 0.08), rgba(150, 100, 200, 0.08)); border-radius: 8px; border: 1px solid rgba(100, 100, 100, 0.15); margin-top: 2rem;">
+            <div style="font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 0.5rem; letter-spacing: 0.5px;">Expected Variance</div>
+            <div style="font-size: 1.6rem; font-weight: bold; color: var(--primary-dark); font-family: 'Courier New', monospace;">
+                ± ₹{{ risk.variance }}
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem;">Market fluctuation range</div>
+        </div>
+    </div>
+
+    {% if risk.is_saturated and risk.alternatives %}
+    <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,0.1);">
+        <p style="color: #d32f2f; font-size: 1.05rem; font-weight: bold; margin-bottom: 1rem;">
+            ⚠ {{ crop }} - {{ t.get('res_oversupply_title', 'production already high in this district') }}
+        </p>
+        <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 1rem; font-weight: 600;">
+            {{ t.get('res_consider_alternatives', 'Consider planting alternatives:') }}
+        </p>
+        <ul style="list-style-type: none; padding-left: 0; color: var(--text-color);">
+            {% for alt in risk.alternatives %}
+            <li style="margin-bottom: 0.5rem; padding: 0.5rem; background: #f5f5f5; border-left: 3px solid #ff9800; padding-left: 1rem;">• {{ alt }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% if risk.historical_price_range %}
+    <div style="margin-top: 2rem; padding: 1.2rem; background: #f9f9f9; border-radius: 8px; border-left: 4px solid #2196f3;">
+        <p style="font-weight: 600; font-size: 0.95rem; color: var(--primary-dark); margin-bottom: 0.5rem;">Historical Price Range:</p>
+        <p style="color: var(--text-color); font-size: 1.05rem; font-weight: 500;">{{ risk.historical_price_range }}</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

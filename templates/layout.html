@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KrushiDrrshti - Smart Fertilizer Advisory</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo"><a href="/?lang={{ lang }}" style="text-decoration: none; color: inherit;">
+                <img src="{{ url_for('static', filename='images/krushidrishti.png') }}" alt="KrushiDrrshti logo">
+            </a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/?lang={{ lang }}">{{ t['nav_home'] }}</a></li>
+            <li><a href="/price-risk?lang={{ lang }}">{{ t['nav_price_risk'] }}</a></li>
+            <li><a href="#">{{ t['nav_about'] }}</a></li>
+            <li><a href="#">{{ t['nav_contact'] }}</a></li>
+            <li>
+                <select class="language-select" aria-label="Select Language">
+                    <option value="en">English</option>
+                    <option value="mr">मराठी (Marathi)</option>
+                    <option value="hi">हिंदी (Hindi)</option>
+                </select>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+
+    </main>
+
+    <footer>
+        <div style="margin-bottom: 1rem;">
+            <a href="/feedback?lang={{ lang }}" class="btn-secondary"
+                style="padding: 0.6rem 1.2rem; font-size: 0.9rem; text-decoration: none; border: 1px solid var(--primary-light);">✉️
+                {{ t.get('feedback_btn', 'Feedback') }}</a>
+        </div>
+        <p>{{ t['footer_text'] }}</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const langSelect = document.querySelector('.language-select');
+
+            // Set the current value based on URL or backend variable if available
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentLang = urlParams.get('lang') || '{{ lang }}' || 'en';
+            langSelect.value = currentLang;
+
+            // Listen for changes
+            langSelect.addEventListener('change', (e) => {
+                const selectedLang = e.target.value;
+                urlParams.set('lang', selectedLang);
+                window.location.search = urlParams.toString();
+            });
+        });
+    </script>
+</body>
+
+</html>

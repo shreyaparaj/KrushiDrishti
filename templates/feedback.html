@@ -1,0 +1,42 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="result-header">
+    <h1>{{ t['feedback_title'] }}</h1>
+    <a href="/?lang={{ lang }}" class="btn-secondary">{{ t.get('res_back', '← Back to Form') }}</a>
+</div>
+
+<div class="form-card card-glass" style="max-width: 600px; margin: 2rem auto;">
+    {% if success_message %}
+    <div class="highlight-card" style="text-align: center; margin-bottom: 2rem;">
+        <div class="card-icon" style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+        <h3 style="color: var(--primary-dark);">{{ success_message }}</h3>
+        <p style="margin-top: 1rem;"><a href="/?lang={{ lang }}" class="btn-primary" style="display: inline-block;">{{
+                t['nav_home'] }}</a></p>
+    </div>
+    {% else %}
+    <h2 style="text-align: center; margin-bottom: 1rem; color: var(--primary-dark);">{{ t['feedback_subtitle'] }}</h2>
+    <form action="/feedback?lang={{ lang }}" method="POST" class="advisory-form">
+        <div class="form-group">
+            <label for="name">{{ t['feedback_name_label'] }}</label>
+            <input type="text" name="name" id="name" required
+                style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Outfit', sans-serif;">
+        </div>
+
+        <div class="form-group">
+            <label for="email">{{ t['feedback_email_label'] }}</label>
+            <input type="email" name="email" id="email" required
+                style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Outfit', sans-serif;">
+        </div>
+
+        <div class="form-group">
+            <label for="message">{{ t['feedback_message_label'] }}</label>
+            <textarea name="message" id="message" rows="5" required
+                style="width: 100%; padding: 0.8rem; border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Outfit', sans-serif; resize: vertical;"></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%;">{{ t['feedback_submit'] }}</button>
+    </form>
+    {% endif %}
+</div>
+{% endblock %}
